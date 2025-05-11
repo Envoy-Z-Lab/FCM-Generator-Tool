@@ -1,5 +1,6 @@
 # Author: Sebastiano Barezzi <barezzisebastiano@gmail.com>
-# Version: 1.3
+# Modifier: Envoy-Z-Lab <envoyzlab@gmail.com>
+# Version: 1.4
 
 from re import search
 
@@ -28,7 +29,7 @@ class Interface:
 
     def merge_interface(self, interface):
         for instance in interface.instances:
-            if not instance in self.instances:
+            if instance not in self.instances:
                 self.instances += [instance]
 
     def format(self):
@@ -47,14 +48,11 @@ class Entry:
         if self.type == "HIDL":
             self.name, version = fqname.split("::")[0].split("@")
             interface_name, interface_instance = fqname.split("::")[1].split("/", 1)
-        else:
-            self.name, interface_str = fqname.rsplit(".", 1)
-            interface_name, interface_instance = interface_str.split("/")
-
-        if self.type == "HIDL":
             version = Version(version)
             self.versions = {version.major: version}
         else:
+            self.name, interface_str = fqname.rsplit(".", 1)
+            interface_name, interface_instance = interface_str.split("/")
             self.versions = {}
 
         interface = Interface(interface_name, interface_instance)
@@ -79,8 +77,6 @@ class Entry:
             else:
                 self.interfaces[interface_name] = interface
 
-        pass
-
     def format(self):
         entry_str = f'<hal format="{self.type.lower()}" optional="true">\n'
         entry_str += f'    <name>{self.name}</name>\n'
@@ -92,7 +88,6 @@ class Entry:
             entry_str += interface.format()
 
         entry_str += '</hal>\n'
-
         return entry_str
 
 def main():
@@ -108,15 +103,13 @@ def main():
             fqname = fqname.removesuffix(versioned_aidl_match.group(0))
 
         entry = Entry(fqname)
-        if entry.name in entries:
-            entries[entry.name].merge_entry(entry)
+        entry_key = f"{entry.type}:{entry.name}"
+        if entry_key in entries:
+            entries[entry_key].merge_entry(entry)
         else:
-            entries[entry.name] = entry
+            entries[entry_key] = entry
 
     fcms = [entry.format() for entry in entries.values()]
-
     print("".join(fcms))
-
-    return
 
 main()
